@@ -8,7 +8,6 @@
         <h2>Enter Player Names</h2>
         <div class="players-input">
           <div v-for="(player, index) in players" :key="index" class="player-input">
-            <!-- <label :for="`player-${index}`">Player {{ index + 1 }}:</label> -->
             <input 
               :id="`player-${index}`"
               v-model="players[index]" 
@@ -37,6 +36,44 @@
         </div>
       </div>
 
+      <!-- Agent Lock Selection -->
+      <div class="section">
+        <h2>Lock Specific Agents (Optional)</h2>
+        <p class="section-description">Select specific agents that must be included in the composition</p>
+        <div class="agent-locks">
+          <div v-for="role in availableRoles" :key="role" class="role-lock-section">
+            <h3 class="role-lock-title">{{ role }}</h3>
+            <div class="agent-selection">
+              <div v-for="agent in agentsByRole[role]" :key="agent.name" class="agent-option">
+                <input 
+                  :id="`agent-${agent.name}`"
+                  v-model="lockedAgents[role]"
+                  :value="agent.name"
+                  type="radio"
+                  :name="`agent-${role}`"
+                />
+                <label :for="`agent-${agent.name}`" class="agent-label">
+                  <img :src="getAgentIcon(agent.name)" :alt="agent.name" class="agent-icon" />
+                  <span>{{ agent.name }}</span>
+                </label>
+              </div>
+              <div class="agent-option">
+                <input 
+                  :id="`no-lock-${role}`"
+                  v-model="lockedAgents[role]"
+                  value=""
+                  type="radio"
+                  :name="`agent-${role}`"
+                />
+                <label :for="`no-lock-${role}`" class="agent-label no-lock">
+                  <span>No Lock</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Generate Button -->
       <button 
         @click="generateComposition" 
@@ -53,9 +90,15 @@
       <div class="composition-results">
         <div v-for="assignment in composition" :key="assignment.player" class="player-assignment">
           <span class="player-name">{{ assignment.player }}</span>
-          <span class="role-badge" :class="assignment.role.toLowerCase()">
-            {{ assignment.role }}
-          </span>
+          <div class="agent-assignment">
+            <img :src="getAgentIcon(assignment.agent)" :alt="assignment.agent" class="result-agent-icon" />
+            <div class="agent-info">
+              <span class="agent-name">{{ assignment.agent }}</span>
+              <span class="role-badge" :class="assignment.role.toLowerCase()">
+                {{ assignment.role }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
       
@@ -83,10 +126,52 @@ export default {
     return {
       players: ['', '', '', '', ''],
       roles: ['Duelist', 'Controller', 'Initiator', 'Sentinel', 'Random'],
+      availableRoles: ['Duelist', 'Controller', 'Initiator', 'Sentinel'],
       selectedRole: '',
       showResults: false,
       composition: [],
-      roleCounts: {}
+      roleCounts: {},
+      lockedAgents: {
+        'Duelist': '',
+        'Controller': '',
+        'Initiator': '',
+        'Sentinel': ''
+      },
+      agentsByRole: {
+        'Duelist': [
+          { name: 'Jett', icon: 'Jett' },
+          { name: 'Reyna', icon: 'Reyna' },
+          { name: 'Phoenix', icon: 'Phoenix' },
+          { name: 'Raze', icon: 'Raze' },
+          { name: 'Yoru', icon: 'Yoru' },
+          { name: 'Neon', icon: 'Neon' },
+          { name: 'Iso', icon: 'Iso' }
+        ],
+        'Controller': [
+          { name: 'Brimstone', icon: 'Brimstone' },
+          { name: 'Omen', icon: 'Omen' },
+          { name: 'Viper', icon: 'Viper' },
+          { name: 'Astra', icon: 'Astra' },
+          { name: 'Harbor', icon: 'Harbor' },
+          { name: 'Clove', icon: 'Clove' }
+        ],
+        'Initiator': [
+          { name: 'Sova', icon: 'Sova' },
+          { name: 'Breach', icon: 'Breach' },
+          { name: 'Skye', icon: 'Skye' },
+          { name: 'KAY/O', icon: 'KAY/O' },
+          { name: 'Fade', icon: 'Fade' },
+          { name: 'Gekko', icon: 'Gekko' }
+        ],
+        'Sentinel': [
+          { name: 'Sage', icon: 'Sage' },
+          { name: 'Cypher', icon: 'Cypher' },
+          { name: 'Killjoy', icon: 'Killjoy' },
+          { name: 'Chamber', icon: 'Chamber' },
+          { name: 'Deadlock', icon: 'Deadlock' },
+          { name: 'Vyse', icon: 'Vyse' }
+        ]
+      }
     }
   },
   computed: {
@@ -113,16 +198,81 @@ export default {
       // Shuffle roles
       const shuffledRoles = this.shuffleArray([...rolePool]);
       
-      // Assign roles to players
-      this.composition = this.players.map((player, index) => ({
-        player: player.trim(),
-        role: shuffledRoles[index]
-      }));
+      // Assign roles and agents to players
+      this.composition = this.players.map((player, index) => {
+        const role = shuffledRoles[index];
+        const agent = this.assignAgentForRole(role, index);
+        
+        return {
+          player: player.trim(),
+          role: role,
+          agent: agent
+        };
+      });
       
       // Calculate role counts for summary
       this.calculateRoleCounts();
       
       this.showResults = true;
+    },
+    
+    assignAgentForRole(role, assignmentIndex) {
+      const roleAgents = this.agentsByRole[role];
+      const lockedAgent = this.lockedAgents[role];
+      
+      // If there's a locked agent for this role, use it for the first assignment of this role
+      if (lockedAgent && !this.isAgentAlreadyAssigned(lockedAgent)) {
+        return lockedAgent;
+      }
+      
+      // Get available agents (not already assigned)
+      const availableAgents = roleAgents.filter(agent => 
+        !this.isAgentAlreadyAssigned(agent.name)
+      );
+      
+      // If no agents available (shouldn't happen with current agent pool), fallback to any agent from role
+      const agentsToChooseFrom = availableAgents.length > 0 ? availableAgents : roleAgents;
+      
+      // Randomly select an agent
+      const randomIndex = Math.floor(Math.random() * agentsToChooseFrom.length);
+      return agentsToChooseFrom[randomIndex].name;
+    },
+    
+    isAgentAlreadyAssigned(agentName) {
+      return this.composition.some(assignment => assignment.agent === agentName);
+    },
+    
+    getAgentIcon(agentName) {
+      // Use a more reliable CDN for agent icons with fallback
+      const agentMap = {
+        'Jett': 'https://static.wikia.nocookie.net/valorant/images/5/52/Jett_icon.png',
+        'Reyna': 'https://static.wikia.nocookie.net/valorant/images/b/b0/Reyna_icon.png',
+        'Phoenix': 'https://static.wikia.nocookie.net/valorant/images/1/14/Phoenix_icon.png',
+        'Raze': 'https://static.wikia.nocookie.net/valorant/images/9/93/Raze_icon.png',
+        'Yoru': 'https://static.wikia.nocookie.net/valorant/images/d/d4/Yoru_icon.png',
+        'Neon': 'https://static.wikia.nocookie.net/valorant/images/d/d0/Neon_icon.png',
+        'Iso': 'https://static.wikia.nocookie.net/valorant/images/0/0a/Iso_icon.png',
+        'Brimstone': 'https://static.wikia.nocookie.net/valorant/images/4/4d/Brimstone_icon.png',
+        'Omen': 'https://static.wikia.nocookie.net/valorant/images/b/b0/Omen_icon.png',
+        'Viper': 'https://static.wikia.nocookie.net/valorant/images/5/5f/Viper_icon.png',
+        'Astra': 'https://static.wikia.nocookie.net/valorant/images/0/08/Astra_icon.png',
+        'Harbor': 'https://static.wikia.nocookie.net/valorant/images/f/f3/Harbor_icon.png',
+        'Clove': 'https://static.wikia.nocookie.net/valorant/images/4/4f/Clove_icon.png',
+        'Sova': 'https://static.wikia.nocookie.net/valorant/images/4/49/Sova_icon.png',
+        'Breach': 'https://static.wikia.nocookie.net/valorant/images/5/53/Breach_icon.png',
+        'Skye': 'https://static.wikia.nocookie.net/valorant/images/3/33/Skye_icon.png',
+        'KAY/O': 'https://static.wikia.nocookie.net/valorant/images/f/f0/KAY%2FO_icon.png',
+        'Fade': 'https://static.wikia.nocookie.net/valorant/images/a/a6/Fade_icon.png',
+        'Gekko': 'https://static.wikia.nocookie.net/valorant/images/6/66/Gekko_icon.png',
+        'Sage': 'https://static.wikia.nocookie.net/valorant/images/7/74/Sage_icon.png',
+        'Cypher': 'https://static.wikia.nocookie.net/valorant/images/8/88/Cypher_icon.png',
+        'Killjoy': 'https://static.wikia.nocookie.net/valorant/images/1/15/Killjoy_icon.png',
+        'Chamber': 'https://static.wikia.nocookie.net/valorant/images/0/09/Chamber_icon.png',
+        'Deadlock': 'https://static.wikia.nocookie.net/valorant/images/e/eb/Deadlock_icon.png',
+        'Vyse': 'https://static.wikia.nocookie.net/valorant/images/8/8e/Vyse_icon.png'
+      };
+      
+      return agentMap[agentName] || 'https://via.placeholder.com/50?text=' + agentName;
     },
     
     shuffleArray(array) {
@@ -146,7 +296,7 @@ export default {
       this.showResults = false;
       this.composition = [];
       this.roleCounts = {};
-      // Keep player names and selected role for convenience
+      // Keep player names, selected role, and locked agents for convenience
     }
   }
 }
@@ -182,6 +332,13 @@ h1 {
 .section h2 {
   margin-bottom: 1rem;
   color: #00d4aa;
+}
+
+.section-description {
+  margin-bottom: 1.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  text-align: center;
 }
 
 .players-input {
@@ -249,6 +406,91 @@ h1 {
   background: rgba(255, 255, 255, 0.1);
 }
 
+.agent-locks {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.role-lock-section {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.role-lock-title {
+  font-size: 1rem;
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  color: #00d4aa;
+  text-align: center;
+}
+
+.agent-selection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.agent-option {
+  display: flex;
+  align-items: center;
+}
+
+.agent-option input[type="radio"] {
+  display: none;
+}
+
+.agent-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
+  min-width: 70px;
+}
+
+.agent-label:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.agent-option input[type="radio"]:checked + .agent-label {
+  border-color: #ff4654;
+  background: rgba(255, 70, 84, 0.2);
+}
+
+.agent-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.agent-label span {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.agent-label.no-lock {
+  background: rgba(255, 255, 255, 0.02);
+  border-style: dashed;
+}
+
+.agent-label.no-lock span {
+  color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
+}
+
 .generate-btn, .reset-btn {
   padding: 1rem 2rem;
   font-size: 1.2rem;
@@ -309,6 +551,33 @@ h1 {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   border-left: 4px solid #ff4654;
+}
+
+.agent-assignment {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.result-agent-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.agent-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-end;
+}
+
+.agent-name {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
 }
 
 .player-name {
@@ -399,11 +668,39 @@ h1 {
   
   .player-assignment {
     flex-direction: column;
+    gap: 0.75rem;
+    text-align: center;
+  }
+  
+  .agent-assignment {
+    flex-direction: column;
     gap: 0.5rem;
+  }
+  
+  .agent-info {
+    align-items: center;
   }
   
   .role-counts {
     gap: 1rem;
+  }
+  
+  .agent-selection {
+    justify-content: center;
+  }
+  
+  .agent-label {
+    min-width: 60px;
+  }
+  
+  .agent-icon {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .result-agent-icon {
+    width: 40px;
+    height: 40px;
   }
 }
 </style>
