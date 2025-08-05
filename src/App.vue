@@ -36,38 +36,79 @@
         </div>
       </div>
 
-      <!-- Agent Lock Selection -->
+      <!-- Agent Selection -->
       <div class="section">
-        <h2>Lock Specific Agents (Optional)</h2>
-        <p class="section-description">Select specific agents that must be included in the composition</p>
-        <div class="agent-locks">
-          <div v-for="role in availableRoles" :key="role" class="role-lock-section">
-            <h3 class="role-lock-title">{{ role }}</h3>
-            <div class="agent-selection">
-              <div v-for="agent in agentsByRole[role]" :key="agent.name" class="agent-option">
-                <input 
-                  :id="`agent-${agent.name}`"
-                  v-model="lockedAgents[role]"
-                  :value="agent.name"
-                  type="radio"
-                  :name="`agent-${role}`"
-                />
-                <label :for="`agent-${agent.name}`" class="agent-label">
-                  <img :src="getAgentIcon(agent.name)" :alt="agent.name" class="agent-icon" />
-                  <span>{{ agent.name }}</span>
-                </label>
-              </div>
-              <div class="agent-option">
-                <input 
-                  :id="`no-lock-${role}`"
-                  v-model="lockedAgents[role]"
-                  value=""
-                  type="radio"
-                  :name="`agent-${role}`"
-                />
-                <label :for="`no-lock-${role}`" class="agent-label no-lock">
-                  <span>No Lock</span>
-                </label>
+        <div class="section-header" @click="showAgentLocks = !showAgentLocks">
+          <h2>Agent Selection (Optional)</h2>
+          <span class="toggle-icon" :class="{ 'expanded': showAgentLocks }">▼</span>
+        </div>
+        <div v-if="showAgentLocks" class="collapsible-content">
+          <div class="agent-mode-selection">
+            <div class="mode-option">
+              <input 
+                id="no-agents" 
+                v-model="agentMode" 
+                value="none" 
+                type="radio" 
+                name="agentMode"
+              />
+              <label for="no-agents" class="mode-label">No Agents (Roles Only)</label>
+            </div>
+            <div class="mode-option">
+              <input 
+                id="random-agents" 
+                v-model="agentMode" 
+                value="random" 
+                type="radio" 
+                name="agentMode"
+              />
+              <label for="random-agents" class="mode-label">Random Agents for All</label>
+            </div>
+            <div class="mode-option">
+              <input 
+                id="lock-agents" 
+                v-model="agentMode" 
+                value="lock" 
+                type="radio" 
+                name="agentMode"
+              />
+              <label for="lock-agents" class="mode-label">Lock Specific Agents</label>
+            </div>
+          </div>
+          
+          <div v-if="agentMode === 'lock'" class="lock-agents-section">
+            <p class="section-description">Select specific agents that must be included in the composition</p>
+            <div class="agent-locks">
+              <div v-for="role in availableRoles" :key="role" class="role-lock-section">
+                <h3 class="role-lock-title">{{ role }}</h3>
+                <div class="agent-selection">
+                  <div v-for="agent in agentsByRole[role]" :key="agent.name" class="agent-option">
+                    <input 
+                      :id="`agent-${agent.name}`"
+                      v-model="lockedAgents[role]"
+                      :value="agent.name"
+                      type="radio"
+                      :name="`agent-${role}`"
+                    />
+                    <label :for="`agent-${agent.name}`" class="agent-label">
+                      <img :src="getAgentIcon(agent.name)" :alt="agent.name" class="agent-icon" />
+                      <span>{{ agent.name }}</span>
+                    </label>
+                  </div>
+                  <div class="agent-option">
+                    <input 
+                      :id="`no-lock-${role}`"
+                      v-model="lockedAgents[role]"
+                      value=""
+                      type="radio"
+                      :name="`agent-${role}`"
+                      checked
+                    />
+                    <label :for="`no-lock-${role}`" class="agent-label no-lock">
+                      <span>No Lock</span>
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -91,9 +132,11 @@
         <div v-for="assignment in composition" :key="assignment.player" class="player-assignment">
           <span class="player-name">{{ assignment.player }}</span>
           <div class="agent-assignment">
-            <img :src="getAgentIcon(assignment.agent)" :alt="assignment.agent" class="result-agent-icon" />
+            <img v-if="assignment.agent" :src="getAgentIcon(assignment.agent)" :alt="assignment.agent" class="result-agent-icon" />
+            <div class="role-icon" v-else :class="assignment.role.toLowerCase()">
+              {{ assignment.role.charAt(0) }}
+            </div>
             <div class="agent-info">
-              <span class="agent-name">{{ assignment.agent }}</span>
               <span class="role-badge" :class="assignment.role.toLowerCase()">
                 {{ assignment.role }}
               </span>
@@ -129,6 +172,8 @@ export default {
       availableRoles: ['Duelist', 'Controller', 'Initiator', 'Sentinel'],
       selectedRole: '',
       showResults: false,
+      showAgentLocks: false,
+      agentMode: 'none', // 'none', 'random', 'lock'
       composition: [],
       roleCounts: {},
       lockedAgents: {
@@ -145,7 +190,8 @@ export default {
           { name: 'Raze', icon: 'Raze' },
           { name: 'Yoru', icon: 'Yoru' },
           { name: 'Neon', icon: 'Neon' },
-          { name: 'Iso', icon: 'Iso' }
+          { name: 'Iso', icon: 'Iso' },
+          { name: 'Waylay', icon: 'Waylay' }
         ],
         'Controller': [
           { name: 'Brimstone', icon: 'Brimstone' },
@@ -198,10 +244,16 @@ export default {
       // Shuffle roles
       const shuffledRoles = this.shuffleArray([...rolePool]);
       
+      // Reset composition for fresh assignment
+      this.composition = [];
+      
+      // Track used locked agents to prevent duplicates
+      const usedLockedAgents = new Set();
+      
       // Assign roles and agents to players
       this.composition = this.players.map((player, index) => {
         const role = shuffledRoles[index];
-        const agent = this.assignAgentForRole(role, index);
+        const agent = this.assignAgentForRole(role, usedLockedAgents);
         
         return {
           player: player.trim(),
@@ -216,52 +268,55 @@ export default {
       this.showResults = true;
     },
     
-    assignAgentForRole(role, assignmentIndex) {
-      const roleAgents = this.agentsByRole[role];
-      const lockedAgent = this.lockedAgents[role];
-      
-      // If there's a locked agent for this role, use it for the first assignment of this role
-      if (lockedAgent && !this.isAgentAlreadyAssigned(lockedAgent)) {
-        return lockedAgent;
+    assignAgentForRole(role, usedLockedAgents) {
+      // If agent mode is 'none', don't assign any agents
+      if (this.agentMode === 'none') {
+        return null;
       }
       
-      // Get available agents (not already assigned)
-      const availableAgents = roleAgents.filter(agent => 
-        !this.isAgentAlreadyAssigned(agent.name)
-      );
+      // If agent mode is 'random', pick a random agent from the role
+      if (this.agentMode === 'random') {
+        const availableAgents = this.agentsByRole[role];
+        const randomIndex = Math.floor(Math.random() * availableAgents.length);
+        return availableAgents[randomIndex].name;
+      }
       
-      // If no agents available (shouldn't happen with current agent pool), fallback to any agent from role
-      const agentsToChooseFrom = availableAgents.length > 0 ? availableAgents : roleAgents;
+      // If agent mode is 'lock', use the locked agent logic
+      if (this.agentMode === 'lock') {
+        const lockedAgent = this.lockedAgents[role];
+        
+        // If there's a locked agent for this role and it hasn't been used yet
+        if (lockedAgent && !usedLockedAgents.has(lockedAgent)) {
+          usedLockedAgents.add(lockedAgent);
+          return lockedAgent;
+        }
+      }
       
-      // Randomly select an agent
-      const randomIndex = Math.floor(Math.random() * agentsToChooseFrom.length);
-      return agentsToChooseFrom[randomIndex].name;
-    },
-    
-    isAgentAlreadyAssigned(agentName) {
-      return this.composition.some(assignment => assignment.agent === agentName);
+      // If no agent is locked for this role, return null (just show role)
+      return null;
     },
     
     getAgentIcon(agentName) {
-      // Use a more reliable CDN for agent icons with fallback
+      // Use fallback placeholder images for problematic agents
       const agentMap = {
-        'Jett': 'https://static.wikia.nocookie.net/valorant/images/5/52/Jett_icon.png',
+        'Jett': 'https://static.wikia.nocookie.net/valorant/images/3/35/Jett_icon.png',
         'Reyna': 'https://static.wikia.nocookie.net/valorant/images/b/b0/Reyna_icon.png',
         'Phoenix': 'https://static.wikia.nocookie.net/valorant/images/1/14/Phoenix_icon.png',
-        'Raze': 'https://static.wikia.nocookie.net/valorant/images/9/93/Raze_icon.png',
+        'Raze': 'https://media.valorant-api.com/agents/f94c3b30-42be-e959-889c-5aa313dba261/displayicon.png',
         'Yoru': 'https://static.wikia.nocookie.net/valorant/images/d/d4/Yoru_icon.png',
         'Neon': 'https://static.wikia.nocookie.net/valorant/images/d/d0/Neon_icon.png',
-        'Iso': 'https://static.wikia.nocookie.net/valorant/images/0/0a/Iso_icon.png',
+        'Iso': 'https://via.placeholder.com/50/FF4654/FFFFFF?text=I',
+        'Waylay': 'https://via.placeholder.com/50/FF4654/FFFFFF?text=W',
         'Brimstone': 'https://static.wikia.nocookie.net/valorant/images/4/4d/Brimstone_icon.png',
         'Omen': 'https://static.wikia.nocookie.net/valorant/images/b/b0/Omen_icon.png',
         'Viper': 'https://static.wikia.nocookie.net/valorant/images/5/5f/Viper_icon.png',
         'Astra': 'https://static.wikia.nocookie.net/valorant/images/0/08/Astra_icon.png',
         'Harbor': 'https://static.wikia.nocookie.net/valorant/images/f/f3/Harbor_icon.png',
-        'Clove': 'https://static.wikia.nocookie.net/valorant/images/4/4f/Clove_icon.png',
+        'Clove': 'https://via.placeholder.com/50/00D4AA/FFFFFF?text=C',
         'Sova': 'https://static.wikia.nocookie.net/valorant/images/4/49/Sova_icon.png',
         'Breach': 'https://static.wikia.nocookie.net/valorant/images/5/53/Breach_icon.png',
         'Skye': 'https://static.wikia.nocookie.net/valorant/images/3/33/Skye_icon.png',
-        'KAY/O': 'https://static.wikia.nocookie.net/valorant/images/f/f0/KAY%2FO_icon.png',
+        'KAY/O': 'https://static.wikia.nocookie.net/valorant/images/f/f0/KAYO_icon.png',
         'Fade': 'https://static.wikia.nocookie.net/valorant/images/a/a6/Fade_icon.png',
         'Gekko': 'https://static.wikia.nocookie.net/valorant/images/6/66/Gekko_icon.png',
         'Sage': 'https://static.wikia.nocookie.net/valorant/images/7/74/Sage_icon.png',
@@ -269,10 +324,10 @@ export default {
         'Killjoy': 'https://static.wikia.nocookie.net/valorant/images/1/15/Killjoy_icon.png',
         'Chamber': 'https://static.wikia.nocookie.net/valorant/images/0/09/Chamber_icon.png',
         'Deadlock': 'https://static.wikia.nocookie.net/valorant/images/e/eb/Deadlock_icon.png',
-        'Vyse': 'https://static.wikia.nocookie.net/valorant/images/8/8e/Vyse_icon.png'
+        'Vyse': 'https://via.placeholder.com/50/9C88FF/FFFFFF?text=V'
       };
       
-      return agentMap[agentName] || 'https://via.placeholder.com/50?text=' + agentName;
+      return agentMap[agentName] || `https://via.placeholder.com/50/FF4654/FFFFFF?text=${agentName.charAt(0)}`;
     },
     
     shuffleArray(array) {
@@ -334,11 +389,87 @@ h1 {
   color: #00d4aa;
 }
 
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-header:hover h2 {
+  color: #00e6c0;
+}
+
+.toggle-icon {
+  font-size: 1.2rem;
+  color: #00d4aa;
+  transition: transform 0.3s ease;
+}
+
+.toggle-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.collapsible-content {
+  margin-top: 1rem;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
 .section-description {
   margin-bottom: 1.5rem;
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.9rem;
   text-align: center;
+}
+
+.agent-mode-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.mode-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mode-option input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #00d4aa;
+}
+
+.mode-label {
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  transition: background-color 0.3s;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.mode-label:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.lock-agents-section {
+  margin-top: 1rem;
 }
 
 .players-input {
@@ -567,6 +698,36 @@ h1 {
   border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
+.role-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.role-icon.duelist {
+  background: #ff4654;
+}
+
+.role-icon.controller {
+  background: #00d4aa;
+}
+
+.role-icon.initiator {
+  background: #ffb800;
+  color: black;
+}
+
+.role-icon.sentinel {
+  background: #9c88ff;
+}
+
 .agent-info {
   display: flex;
   flex-direction: column;
@@ -701,6 +862,12 @@ h1 {
   .result-agent-icon {
     width: 40px;
     height: 40px;
+  }
+  
+  .role-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
   }
 }
 </style>
