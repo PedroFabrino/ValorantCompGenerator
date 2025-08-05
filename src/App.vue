@@ -95,6 +95,8 @@
                       <span>{{ agent.name }}</span>
                     </label>
                   </div>
+                </div>
+                <div class="no-lock-row">
                   <div class="agent-option">
                     <input 
                       :id="`no-lock-${role}`"
@@ -391,10 +393,11 @@ h1 {
 
 .section-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   cursor: pointer;
   user-select: none;
+  position: relative;
 }
 
 .section-header:hover h2 {
@@ -402,6 +405,8 @@ h1 {
 }
 
 .toggle-icon {
+  position: absolute;
+  right: 0;
   font-size: 1.2rem;
   color: #00d4aa;
   transition: transform 0.3s ease;
@@ -562,6 +567,12 @@ h1 {
   flex-wrap: wrap;
   gap: 0.5rem;
   justify-content: center;
+}
+
+.no-lock-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
 }
 
 .agent-option {
