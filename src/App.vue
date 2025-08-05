@@ -8,12 +8,12 @@
         <h2>Enter Player Names</h2>
         <div class="players-input">
           <div v-for="(player, index) in players" :key="index" class="player-input">
-            <label :for="`player-${index}`">Player {{ index + 1 }}:</label>
+            <!-- <label :for="`player-${index}`">Player {{ index + 1 }}:</label> -->
             <input 
               :id="`player-${index}`"
               v-model="players[index]" 
               type="text" 
-              :placeholder="`Player ${index + 1} name`"
+              :placeholder="`Player ${index + 1}`"
               required
             />
           </div>
