@@ -26,11 +26,10 @@ A Vue.js application that generates random team compositions for Valorant matche
 
 | Metric | Status |
 |--------|--------|
-| **Build Status** | [![Test and Deploy](https://github.com/PedroFabrino/ValorantCompGenerator/actions/workflows/deploy.yml/badge.svg)](https://github.com/PedroFabrino/ValorantCompGenerator/actions/workflows/deploy.yml) |
+| **Build & Tests** | [![Test and Deploy](https://github.com/PedroFabrino/ValorantCompGenerator/actions/workflows/deploy.yml/badge.svg)](https://github.com/PedroFabrino/ValorantCompGenerator/actions/workflows/deploy.yml) |
 | **Test Coverage** | [![codecov](https://codecov.io/gh/PedroFabrino/ValorantCompGenerator/branch/main/graph/badge.svg)](https://codecov.io/gh/PedroFabrino/ValorantCompGenerator) |
 | **Live Demo** | [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-brightgreen)](https://pedrofabrino.github.io/ValorantCompGenerator/) |
-| **Tests Passing** | ![Tests](https://img.shields.io/badge/Tests-58%20passing-brightgreen) |
-| **Code Quality** | ![Coverage](https://img.shields.io/badge/Coverage-95.84%25-brightgreen) |
+| **Framework** | [![Vue.js](https://img.shields.io/badge/Vue.js-3.4.0-4FC08D?logo=vue.js&logoColor=white)](https://vuejs.org/) |
 
 ## CI/CD Pipeline
 
