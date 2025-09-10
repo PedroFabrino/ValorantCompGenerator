@@ -1,5 +1,12 @@
 # Valorant Comp Randomizer
 
+[![Test and Deploy](https://github.com/PedroFabrino/ValorantCompGenerator/actions/workflows/deploy.yml/badge.svg)](https://github.com/PedroFabrino/ValorantCompGenerator/actions/workflows/deploy.yml)
+[![codecov](https://codecov.io/gh/PedroFabrino/ValorantCompGenerator/branch/main/graph/badge.svg)](https://codecov.io/gh/PedroFabrino/ValorantCompGenerator)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-brightgreen)](https://pedrofabrino.github.io/ValorantCompGenerator/)
+[![Vue.js](https://img.shields.io/badge/Vue.js-3.4.0-4FC08D?logo=vue.js&logoColor=white)](https://vuejs.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.0.0-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tests](https://img.shields.io/badge/Tests-58%20passing-brightgreen)](https://github.com/PedroFabrino/ValorantCompGenerator/actions)
+
 A Vue.js application that generates random team compositions for Valorant matches.
 
 ## Features
@@ -14,6 +21,15 @@ A Vue.js application that generates random team compositions for Valorant matche
 - Generate a balanced team composition with one doubled role
 - View role distribution summary
 - Clean, responsive UI with Valorant-themed styling
+
+## 📊 Project Status
+
+| Metric | Status |
+|--------|--------|
+| **Build & Tests** | [![Test and Deploy](https://github.com/PedroFabrino/ValorantCompGenerator/actions/workflows/deploy.yml/badge.svg)](https://github.com/PedroFabrino/ValorantCompGenerator/actions/workflows/deploy.yml) |
+| **Test Coverage** | [![codecov](https://codecov.io/gh/PedroFabrino/ValorantCompGenerator/branch/main/graph/badge.svg)](https://codecov.io/gh/PedroFabrino/ValorantCompGenerator) |
+| **Live Demo** | [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live-brightgreen)](https://pedrofabrino.github.io/ValorantCompGenerator/) |
+| **Framework** | [![Vue.js](https://img.shields.io/badge/Vue.js-3.4.0-4FC08D?logo=vue.js&logoColor=white)](https://vuejs.org/) |
 
 ## CI/CD Pipeline
 
