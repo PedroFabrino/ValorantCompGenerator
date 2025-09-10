@@ -15,6 +15,20 @@ A Vue.js application that generates random team compositions for Valorant matche
 - View role distribution summary
 - Clean, responsive UI with Valorant-themed styling
 
+## CI/CD Pipeline
+
+This project uses GitHub Actions for automated testing and deployment:
+
+### Automated Workflow
+- **On Push to Any Branch**: Runs comprehensive test suite
+- **On Push to Main**: Runs tests → Builds → Deploys to GitHub Pages
+- **On Pull Request**: Runs tests to ensure code quality before merging
+- **Test Coverage**: Automatically generates and uploads coverage reports
+- **Deployment**: Only deploys from main branch if all tests pass
+
+### Workflow Status
+Check the [Actions tab](../../actions) to see the status of builds and deployments.
+
 ## Testing
 
 The project includes comprehensive unit and integration tests:
@@ -78,17 +92,19 @@ Current test coverage: **95.84%** overall
    git push -u origin main
    ```
 
-4. **Deploy to GitHub Pages:**
+4. **Automatic Deployment:**
+   After pushing to the main branch, GitHub Actions will automatically:
+   - Run all tests to ensure code quality
+   - Build the application for production
+   - Deploy to GitHub Pages (if tests pass)
+   
+   **Manual Deployment (Optional):**
+   You can also deploy manually using:
    ```bash
    npm run deploy
    ```
    
-   This command will:
-   - Run all tests to ensure code quality
-   - Build the application for production
-   - Deploy to GitHub Pages
-   
-   **Note**: Deployment will fail if any tests fail, ensuring only tested code reaches production.
+   **Note**: Both automated and manual deployment will fail if any tests fail, ensuring only tested code reaches production.
 
 5. **Enable GitHub Pages:**
    - Go to your repository on GitHub
