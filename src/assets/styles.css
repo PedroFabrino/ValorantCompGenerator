@@ -273,7 +273,7 @@ h1 {
   font-style: italic;
 }
 
-.generate-btn, .reset-btn {
+.generate-btn, .reset-btn, .clear-history-btn {
   padding: 1rem 2rem;
   font-size: 1.2rem;
   font-weight: bold;
@@ -308,6 +308,19 @@ h1 {
 .reset-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 212, 170, 0.4);
+}
+
+.clear-history-btn {
+  background: linear-gradient(135deg, #9c88ff, #7c69ff);
+  color: white;
+  font-size: 1rem;
+  padding: 0.75rem 1.5rem;
+  margin-left: 1rem;
+}
+
+.clear-history-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(156, 136, 255, 0.4);
 }
 
 .results-container {

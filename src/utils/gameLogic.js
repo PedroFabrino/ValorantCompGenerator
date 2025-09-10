@@ -1,6 +1,97 @@
 // Utility functions for Valorant Comp Randomizer
 
 /**
+ * Assign roles to players with history-based weighting to reduce repetition
+ * @param {Array} players - Array of player names
+ * @param {Array} rolePool - Array of roles to assign (should have exactly 5 roles: 4 unique + 1 duplicate)
+ * @param {Object} roleHistory - Object mapping player names to role history arrays
+ * @returns {Array} - Array of role assignments for each player
+ */
+export function assignRolesWithHistory(players, rolePool, roleHistory) {
+  // Create a pool of available roles to assign
+  const availableRoles = [...rolePool];
+  const assignments = new Array(players.length);
+  
+  // Create player preference scores for each role
+  const playerPreferences = players.map((player, index) => {
+    const playerName = player.trim();
+    const history = roleHistory[playerName] || [];
+    
+    // Calculate preference scores for each unique role
+    const roleScores = {};
+    const uniqueRoles = [...new Set(rolePool)];
+    
+    uniqueRoles.forEach(role => {
+      // Find how recently this role was played (lower = more recent = worse score)
+      const lastPlayedIndex = history.lastIndexOf(role);
+      const recencyPenalty = lastPlayedIndex >= 0 ? Math.max(0, 4 - (history.length - 1 - lastPlayedIndex)) : 0;
+      
+      // Base score is random, with penalty for recent roles
+      roleScores[role] = Math.random() * 10 - recencyPenalty * 3;
+    });
+    
+    return {
+      playerIndex: index,
+      playerName,
+      roleScores,
+      history
+    };
+  });
+  
+  // Sort players by their overall preference scores (most flexible first)
+  playerPreferences.sort((a, b) => {
+    const aFlexibility = Object.values(a.roleScores).reduce((sum, score) => sum + Math.max(0, score), 0);
+    const bFlexibility = Object.values(b.roleScores).reduce((sum, score) => sum + Math.max(0, score), 0);
+    return bFlexibility - aFlexibility;
+  });
+  
+  // Assign roles one by one, considering preferences and availability
+  playerPreferences.forEach(({ playerIndex, roleScores }) => {
+    let bestRole = null;
+    let bestScore = -Infinity;
+    
+    // Find the best available role for this player
+    availableRoles.forEach((role, rolePoolIndex) => {
+      if (role !== null) { // Role is still available
+        const score = roleScores[role] || 0;
+        if (score > bestScore) {
+          bestScore = score;
+          bestRole = role;
+        }
+      }
+    });
+    
+    // Assign the best role and remove it from available pool
+    if (bestRole !== null) {
+      assignments[playerIndex] = bestRole;
+      // Remove the first occurrence of this role from available pool
+      const roleIndex = availableRoles.indexOf(bestRole);
+      if (roleIndex !== -1) {
+        availableRoles[roleIndex] = null; // Mark as used
+      }
+    }
+  });
+  
+  // Fill any remaining assignments with any leftover roles (fallback)
+  let availableIndex = 0;
+  assignments.forEach((assignment, index) => {
+    if (!assignment) {
+      // Find next available role
+      while (availableIndex < availableRoles.length && availableRoles[availableIndex] === null) {
+        availableIndex++;
+      }
+      if (availableIndex < availableRoles.length) {
+        assignments[index] = availableRoles[availableIndex];
+        availableRoles[availableIndex] = null;
+        availableIndex++;
+      }
+    }
+  });
+  
+  return assignments;
+}
+
+/**
  * Shuffle an array using Fisher-Yates algorithm
  * @param {Array} array - The array to shuffle
  * @returns {Array} - A new shuffled array

@@ -160,13 +160,17 @@
       <button @click="resetGenerator" class="reset-btn">
         Generate New Composition
       </button>
+      
+      <button @click="clearRoleHistory" class="clear-history-btn" title="Clear role history to reset anti-repetition system">
+        Clear Role History
+      </button>
     </div>
   </div>
 </template>
 
 <script>
 import { agentsByRole, roles, availableRoles, agentIconMap } from './data/agents.js';
-import { shuffleArray, getAgentIcon, calculateRoleCounts, assignAgentForRole } from './utils/gameLogic.js';
+import { shuffleArray, getAgentIcon, calculateRoleCounts, assignAgentForRole, assignRolesWithHistory } from './utils/gameLogic.js';
 import './assets/styles.css';
 
 export default {
@@ -188,7 +192,9 @@ export default {
         'Initiator': '',
         'Sentinel': ''
       },
-      agentsByRole
+      agentsByRole,
+      // Track role history to reduce repetition
+      roleHistory: {} // { playerName: [role1, role2, ...] }
     }
   },
   computed: {
@@ -209,8 +215,8 @@ export default {
       // Create role pool: 4 different roles + 1 doubled role
       const rolePool = [...availableRoles, doubleRole];
       
-      // Shuffle roles
-      const shuffledRoles = shuffleArray(rolePool);
+      // Assign roles using history-based weighting to reduce repetition
+      const roleAssignments = assignRolesWithHistory(this.players, rolePool, this.roleHistory);
       
       // Reset composition for fresh assignment
       this.composition = [];
@@ -220,7 +226,7 @@ export default {
       
       // Assign roles and agents to players
       this.composition = this.players.map((player, index) => {
-        const role = shuffledRoles[index];
+        const role = roleAssignments[index];
         const agent = assignAgentForRole(
           role,
           this.agentMode,
@@ -234,6 +240,20 @@ export default {
           role: role,
           agent: agent
         };
+      });
+      
+      // Update role history for each player
+      this.composition.forEach(assignment => {
+        const playerName = assignment.player;
+        if (!this.roleHistory[playerName]) {
+          this.roleHistory[playerName] = [];
+        }
+        this.roleHistory[playerName].push(assignment.role);
+        
+        // Keep only the last 5 roles to prevent infinite growth
+        if (this.roleHistory[playerName].length > 5) {
+          this.roleHistory[playerName] = this.roleHistory[playerName].slice(-5);
+        }
       });
       
       // Calculate role counts for summary
@@ -251,6 +271,10 @@ export default {
       this.composition = [];
       this.roleCounts = {};
       // Keep player names, selected role, and locked agents for convenience
+    },
+    
+    clearRoleHistory() {
+      this.roleHistory = {};
     }
   }
 }
