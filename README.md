@@ -6,9 +6,42 @@ A Vue.js application that generates random team compositions for Valorant matche
 
 - Input 5 player names
 - Select which role should be doubled (Duelist, Controller, Initiator, Sentinel, or Random)
+- Role history tracking to reduce repetitive role assignments
+- Three agent selection modes:
+  - No agents assigned
+  - Random agent assignment
+  - Lock specific agents before generation
 - Generate a balanced team composition with one doubled role
 - View role distribution summary
 - Clean, responsive UI with Valorant-themed styling
+
+## Testing
+
+The project includes comprehensive unit and integration tests:
+
+### Run Tests
+```bash
+# Run all tests
+npm run test
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run tests with interactive UI
+npm run test:ui
+```
+
+### Test Coverage
+Current test coverage: **95.84%** overall
+- **58 tests** covering all core functionality
+- Unit tests for randomization algorithms
+- Integration tests for Vue components
+- Data validation tests for agent roster
+
+### Test Structure
+- `src/test/gameLogic.test.js` - Core randomization and assignment logic
+- `src/test/agents.test.js` - Agent data and role validation
+- `src/test/App.test.js` - Full component integration tests
 
 ## How to Run Locally
 
@@ -49,6 +82,13 @@ A Vue.js application that generates random team compositions for Valorant matche
    ```bash
    npm run deploy
    ```
+   
+   This command will:
+   - Run all tests to ensure code quality
+   - Build the application for production
+   - Deploy to GitHub Pages
+   
+   **Note**: Deployment will fail if any tests fail, ensuring only tested code reaches production.
 
 5. **Enable GitHub Pages:**
    - Go to your repository on GitHub
