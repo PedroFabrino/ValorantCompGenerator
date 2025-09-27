@@ -1,20 +1,48 @@
 <template>
   <div class="app">
-    <h1 style="margin: 3rem 0 0 0; font-size: 2.7rem; font-weight: bold; color: #ff4a5c; letter-spacing: 1px; text-align: center;">Valorant Comp Randomizer</h1>
+    <h1 style="margin: 0 0 0 0; font-size: 2.7rem; font-weight: bold; color: #ff4a5c; letter-spacing: 1px; text-align: center;">Valorant Comp Randomizer</h1>
     <div class="center-content">
       <div v-if="!showResults" class="setup-container">
         <!-- Player Names Input -->
         <div class="section">
           <h2>Enter Player Names</h2>
           <div class="players-input">
-            <div v-for="(player, index) in players" :key="index" class="player-input">
+            <div v-for="(player, index) in players" :key="index" class="player-input" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; position: relative;">
               <input 
                 :id="`player-${index}`"
                 v-model="players[index]" 
                 type="text" 
                 :placeholder="`Player ${index + 1}`"
                 required
-              />
+                style="flex: 1 1 0; min-width: 0; padding-right: 2rem;"
+              >
+                <button
+                  v-if="players[index]"
+                  @click="players[index] = ''"
+                  type="button"
+                  aria-label="Clear name"
+                  style="
+                    position: absolute;
+                    right: 7rem;
+                    background: transparent;
+                    border: none;
+                    color: #aaa;
+                    font-size: 1.1rem;
+                    cursor: pointer;
+                    padding: 0 0.3rem;
+                    z-index: 2;
+                    top: 50%;
+                    transform: translateY(-50%);"
+                  @mouseover="event.target.style.color='#ff4a5c'"
+                  @mouseleave="event.target.style.color='#aaa'"
+                >
+                  ×
+                </button>
+              </input>
+              <select v-model="lockedRoles[index]" style="padding: 0.2rem 0.5rem; border-radius: 6px; border: 1px solid #333; background: #23262f; color: #fff;">
+                <option value="">Any Role</option>
+                <option v-for="role in availableRoles" :key="role" :value="role">{{ role }}</option>
+              </select>
             </div>
           </div>
         </div>
@@ -169,7 +197,7 @@
       <div v-if="recentTeammates.length === 0" class="empty-teammates" style="color: #888; text-align: center;">No teammates yet.</div>
       <div v-else class="teammates-list" style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-start;">
         <button
-          v-for="mate in recentTeammates"
+          v-for="mate in filteredTeammates"
           :key="mate"
           type="button"
           class="teammate-btn"
@@ -192,6 +220,7 @@
           {{ mate }}
         </button>
       </div>
+  
     </div>
   </div>
 </template>
@@ -223,7 +252,8 @@ export default {
       agentsByRole,
       // Track role history to reduce repetition
       roleHistory: {}, // { playerName: [role1, role2, ...] }
-      recentTeammates: [] // List of recent/frequent teammates
+      recentTeammates: [], // List of recent/frequent teammates
+      lockedRoles: ['', '', '', '', ''] // New: lock a role for each player
     }
   },
   mounted() {
@@ -240,6 +270,11 @@ export default {
       const allPlayersNamed = this.players.every(player => player.trim() !== '');
       const roleSelected = this.selectedRole !== '';
       return allPlayersNamed && roleSelected;
+    },
+    filteredTeammates() {
+      // Hide teammates already present in the player input list
+      const playerSet = new Set(this.players.map(p => p.trim()).filter(Boolean));
+      return this.recentTeammates.filter(mate => !playerSet.has(mate));
     }
   },
   methods: {
@@ -294,22 +329,38 @@ export default {
       if (doubleRole === 'Random') {
         doubleRole = availableRoles[Math.floor(Math.random() * availableRoles.length)];
       }
-      
       // Create role pool: 4 different roles + 1 doubled role
       const rolePool = [...availableRoles, doubleRole];
-      
-      // Assign roles using history-based weighting to reduce repetition
-      const roleAssignments = assignRolesWithHistory(this.players, rolePool, this.roleHistory);
-      
-      // Reset composition for fresh assignment
+
+      // 1. Assign locked roles first
+      const assignedRoles = Array(this.players.length).fill(null);
+      const usedRoles = [];
+      let remainingPool = [...rolePool];
+      // First, assign locked roles and remove them from the pool
+      this.lockedRoles.forEach((locked, idx) => {
+        if (locked && this.players[idx].trim() !== '') {
+          assignedRoles[idx] = locked;
+          // Remove one instance of this role from the pool
+          const i = remainingPool.indexOf(locked);
+          if (i !== -1) remainingPool.splice(i, 1);
+          usedRoles.push(locked);
+        }
+      });
+      // 2. Assign remaining roles randomly (with history)
+      // Get indices of players who are not locked
+      const toAssign = this.players.map((p, i) => (assignedRoles[i] === null && p.trim() !== '') ? i : null).filter(i => i !== null);
+      // Prepare a fake player list for assignRolesWithHistory
+      const assignPlayers = toAssign.map(i => this.players[i]);
+      // Assign roles for the remaining players
+      const assignedRest = assignRolesWithHistory(assignPlayers, remainingPool, this.roleHistory);
+      toAssign.forEach((idx, j) => {
+        assignedRoles[idx] = assignedRest[j];
+      });
+      // Now assignedRoles is the final role assignment for each player
       this.composition = [];
-      
-      // Track used agents to prevent duplicates (for both locked and random modes)
       const usedAgents = new Set();
-      
-      // Assign roles and agents to players
       this.composition = this.players.map((player, index) => {
-        const role = roleAssignments[index];
+        const role = assignedRoles[index];
         const agent = assignAgentForRole(
           role,
           this.agentMode,
@@ -317,14 +368,12 @@ export default {
           this.lockedAgents,
           usedAgents
         );
-        
         return {
           player: player.trim(),
           role: role,
           agent: agent
         };
       });
-      
       // Update role history for each player
       this.composition.forEach(assignment => {
         const playerName = assignment.player;
@@ -339,10 +388,8 @@ export default {
       });
       // Update teammates list
       this.updateTeammatesList();
-      
       // Calculate role counts for summary
       this.roleCounts = calculateRoleCounts(this.composition);
-      
       this.showResults = true;
     },
     

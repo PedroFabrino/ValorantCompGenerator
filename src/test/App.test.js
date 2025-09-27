@@ -3,6 +3,46 @@ import { mount } from '@vue/test-utils'
 import App from '../App.vue'
 
 describe('App.vue Integration Tests', () => {
+  describe('Player Name Clear (X) Button', () => {
+    it('should show X button when player name is present and clear the input when clicked', async () => {
+      const playerInputs = wrapper.findAll('.player-input input')
+      // Set a name for the first player
+      await playerInputs[0].setValue('TestPlayer')
+      // X button should appear for the first input
+      let playerInputDivs = wrapper.findAll('.player-input')
+      let clearBtn = playerInputDivs[0].find('button')
+      expect(clearBtn.exists()).toBe(true)
+      // Click the X button
+      await clearBtn.trigger('click')
+      // Input should be cleared
+      expect(wrapper.vm.players[0]).toBe('')
+      // X button should disappear
+      playerInputDivs = wrapper.findAll('.player-input')
+      clearBtn = playerInputDivs[0].find('button')
+      expect(clearBtn.exists()).toBe(false)
+    })
+  })
+
+  describe('filteredTeammates logic', () => {
+    it('should not show teammates already present in player fields', async () => {
+      // Add two teammates to recentTeammates
+      wrapper.vm.recentTeammates = ['Alpha', 'Bravo', 'Charlie']
+      // Set Alpha as a player
+      const playerInputs = wrapper.findAll('.player-input input')
+      await playerInputs[0].setValue('Alpha')
+      await playerInputs[1].setValue('')
+      await playerInputs[2].setValue('')
+      await playerInputs[3].setValue('')
+      await playerInputs[4].setValue('')
+      await wrapper.vm.$nextTick()
+      // Only Bravo and Charlie should be shown
+      const teammateBtns = wrapper.findAll('.teammate-btn')
+      const names = teammateBtns.map(btn => btn.text())
+      expect(names).not.toContain('Alpha')
+      expect(names).toContain('Bravo')
+      expect(names).toContain('Charlie')
+    })
+  })
   let wrapper
 
   beforeEach(() => {
@@ -201,6 +241,78 @@ describe('App.vue Integration Tests', () => {
 
       expect(wrapper.find('.setup-container').exists()).toBe(true)
       expect(wrapper.find('.results-container').exists()).toBe(false)
+    })
+  })
+
+  describe('Recent Teammates Panel & Autofill', () => {
+    beforeEach(async () => {
+      // Fill in all player names and generate a comp to populate teammates
+      const playerInputs = wrapper.findAll('.player-input input')
+      for (let i = 0; i < playerInputs.length; i++) {
+        await playerInputs[i].setValue(`Teammate${i + 1}`)
+      }
+      const roleInput = wrapper.find('input[value="Duelist"]')
+      await roleInput.setChecked(true)
+      const generateBtn = wrapper.find('.generate-btn')
+      await generateBtn.trigger('click')
+      // Reset to setup for autofill test
+      const resetBtn = wrapper.find('.reset-btn')
+      await resetBtn.trigger('click')
+    })
+
+    it('should display recent teammates in the panel', async () => {
+      // Set up recentTeammates directly for test reliability
+      wrapper.vm.recentTeammates = ['Teammate1', 'Teammate2', 'Teammate3']
+      // Clear all player names so filteredTeammates is not empty
+      const playerInputs = wrapper.findAll('.player-input input')
+      for (let i = 0; i < playerInputs.length; i++) {
+        await playerInputs[i].setValue('')
+      }
+      await wrapper.vm.$nextTick()
+      const teammateBtns = wrapper.findAll('.teammate-btn')
+      expect(teammateBtns.length).toBeGreaterThan(0)
+      expect(['Teammate1', 'Teammate2', 'Teammate3']).toContain(teammateBtns[0].text())
+    })
+
+    it('should autofill teammate name into first empty slot when clicked', async () => {
+      // Clear all player names
+      const playerInputs = wrapper.findAll('.player-input input')
+      for (let i = 0; i < playerInputs.length; i++) {
+        await playerInputs[i].setValue('')
+      }
+      // Click first teammate button
+      const teammateBtn = wrapper.find('.teammate-btn')
+      await teammateBtn.trigger('click')
+      // First player input should now have that name
+      expect(wrapper.vm.players[0]).toBe(teammateBtn.text())
+    })
+  })
+
+  describe('Per-Player Role Lock', () => {
+    beforeEach(async () => {
+      // Fill in all player names
+      const playerInputs = wrapper.findAll('.player-input input')
+      for (let i = 0; i < playerInputs.length; i++) {
+        await playerInputs[i].setValue(`LockTest${i + 1}`)
+      }
+      // Lock a specific role for player 1
+      const roleSelects = wrapper.findAll('select')
+      await roleSelects[0].setValue('Duelist')
+      // Select double role
+      const roleInput = wrapper.find('input[value="Controller"]')
+      await roleInput.setChecked(true)
+    })
+
+    it('should allow locking a role for a player', () => {
+      const roleSelects = wrapper.findAll('select')
+      expect(roleSelects[0].element.value).toBe('Duelist')
+    })
+
+    it('should assign the locked role to the correct player after generation', async () => {
+      const generateBtn = wrapper.find('.generate-btn')
+      await generateBtn.trigger('click')
+      // Player 1 should have Duelist role
+      expect(wrapper.vm.composition[0].role).toBe('Duelist')
     })
   })
 
