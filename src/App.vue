@@ -1,169 +1,197 @@
 <template>
   <div class="app">
-    <h1>Valorant Comp Randomizer</h1>
-    
-    <div v-if="!showResults" class="setup-container">
-      <!-- Player Names Input -->
-      <div class="section">
-        <h2>Enter Player Names</h2>
-        <div class="players-input">
-          <div v-for="(player, index) in players" :key="index" class="player-input">
-            <input 
-              :id="`player-${index}`"
-              v-model="players[index]" 
-              type="text" 
-              :placeholder="`Player ${index + 1}`"
-              required
-            />
+    <h1 style="margin: 3rem 0 0 0; font-size: 2.7rem; font-weight: bold; color: #ff4a5c; letter-spacing: 1px; text-align: center;">Valorant Comp Randomizer</h1>
+    <div class="center-content">
+      <div v-if="!showResults" class="setup-container">
+        <!-- Player Names Input -->
+        <div class="section">
+          <h2>Enter Player Names</h2>
+          <div class="players-input">
+            <div v-for="(player, index) in players" :key="index" class="player-input">
+              <input 
+                :id="`player-${index}`"
+                v-model="players[index]" 
+                type="text" 
+                :placeholder="`Player ${index + 1}`"
+                required
+              />
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Role Selection -->
-      <div class="section">
-        <h2>Select Double Role</h2>
-        <div class="role-selection">
-          <div v-for="role in roles" :key="role" class="role-option">
-            <input 
-              :id="role" 
-              v-model="selectedRole" 
-              :value="role" 
-              type="radio" 
-              name="role"
-            />
-            <label :for="role" class="role-label">{{ role }}</label>
+        <!-- Role Selection -->
+        <div class="section">
+          <h2>Select Double Role</h2>
+          <div class="role-selection">
+            <div v-for="role in roles" :key="role" class="role-option">
+              <input 
+                :id="role" 
+                v-model="selectedRole" 
+                :value="role" 
+                type="radio" 
+                name="role"
+              />
+              <label :for="role" class="role-label">{{ role }}</label>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Agent Selection -->
-      <div class="section">
-        <div class="section-header" @click="showAgentLocks = !showAgentLocks">
-          <h2>Agent Selection (Optional)</h2>
-          <span class="toggle-icon" :class="{ 'expanded': showAgentLocks }">▼</span>
-        </div>
-        <div v-if="showAgentLocks" class="collapsible-content">
-          <div class="agent-mode-selection">
-            <div class="mode-option">
-              <input 
-                id="no-agents" 
-                v-model="agentMode" 
-                value="none" 
-                type="radio" 
-                name="agentMode"
-              />
-              <label for="no-agents" class="mode-label">No Agents (Roles Only)</label>
-            </div>
-            <div class="mode-option">
-              <input 
-                id="random-agents" 
-                v-model="agentMode" 
-                value="random" 
-                type="radio" 
-                name="agentMode"
-              />
-              <label for="random-agents" class="mode-label">Random Agents for All</label>
-            </div>
-            <div class="mode-option">
-              <input 
-                id="lock-agents" 
-                v-model="agentMode" 
-                value="lock" 
-                type="radio" 
-                name="agentMode"
-              />
-              <label for="lock-agents" class="mode-label">Lock Specific Agents</label>
-            </div>
+        <!-- Agent Selection -->
+        <div class="section">
+          <div class="section-header" @click="showAgentLocks = !showAgentLocks">
+            <h2>Agent Selection (Optional)</h2>
+            <span class="toggle-icon" :class="{ 'expanded': showAgentLocks }">▼</span>
           </div>
-          
-          <div v-if="agentMode === 'lock'" class="lock-agents-section">
-            <p class="section-description">Select specific agents that must be included in the composition</p>
-            <div class="agent-locks">
-              <div v-for="role in availableRoles" :key="role" class="role-lock-section">
-                <h3 class="role-lock-title">{{ role }}</h3>
-                <div class="agent-selection">
-                  <div v-for="agent in agentsByRole[role]" :key="agent.name" class="agent-option">
-                    <input 
-                      :id="`agent-${agent.name}`"
-                      v-model="lockedAgents[role]"
-                      :value="agent.name"
-                      type="radio"
-                      :name="`agent-${role}`"
-                    />
-                    <label :for="`agent-${agent.name}`" class="agent-label">
-                      <img :src="getAgentIcon(agent.name)" :alt="agent.name" class="agent-icon" />
-                      <span>{{ agent.name }}</span>
-                    </label>
+          <div v-if="showAgentLocks" class="collapsible-content">
+            <div class="agent-mode-selection">
+              <div class="mode-option">
+                <input 
+                  id="no-agents" 
+                  v-model="agentMode" 
+                  value="none" 
+                  type="radio" 
+                  name="agentMode"
+                />
+                <label for="no-agents" class="mode-label">No Agents (Roles Only)</label>
+              </div>
+              <div class="mode-option">
+                <input 
+                  id="random-agents" 
+                  v-model="agentMode" 
+                  value="random" 
+                  type="radio" 
+                  name="agentMode"
+                />
+                <label for="random-agents" class="mode-label">Random Agents for All</label>
+              </div>
+              <div class="mode-option">
+                <input 
+                  id="lock-agents" 
+                  v-model="agentMode" 
+                  value="lock" 
+                  type="radio" 
+                  name="agentMode"
+                />
+                <label for="lock-agents" class="mode-label">Lock Specific Agents</label>
+              </div>
+            </div>
+            
+            <div v-if="agentMode === 'lock'" class="lock-agents-section">
+              <p class="section-description">Select specific agents that must be included in the composition</p>
+              <div class="agent-locks">
+                <div v-for="role in availableRoles" :key="role" class="role-lock-section">
+                  <h3 class="role-lock-title">{{ role }}</h3>
+                  <div class="agent-selection">
+                    <div v-for="agent in agentsByRole[role]" :key="agent.name" class="agent-option">
+                      <input 
+                        :id="`agent-${agent.name}`"
+                        v-model="lockedAgents[role]"
+                        :value="agent.name"
+                        type="radio"
+                        :name="`agent-${role}`"
+                      />
+                      <label :for="`agent-${agent.name}`" class="agent-label">
+                        <img :src="getAgentIcon(agent.name)" :alt="agent.name" class="agent-icon" />
+                        <span>{{ agent.name }}</span>
+                      </label>
+                    </div>
                   </div>
-                </div>
-                <div class="no-lock-row">
-                  <div class="agent-option">
-                    <input 
-                      :id="`no-lock-${role}`"
-                      v-model="lockedAgents[role]"
-                      value=""
-                      type="radio"
-                      :name="`agent-${role}`"
-                      checked
-                    />
-                    <label :for="`no-lock-${role}`" class="agent-label no-lock">
-                      <span>No Lock</span>
-                    </label>
+                  <div class="no-lock-row">
+                    <div class="agent-option">
+                      <input 
+                        :id="`no-lock-${role}`"
+                        v-model="lockedAgents[role]"
+                        value=""
+                        type="radio"
+                        :name="`agent-${role}`"
+                        checked
+                      />
+                      <label :for="`no-lock-${role}`" class="agent-label no-lock">
+                        <span>No Lock</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Generate Button -->
-      <button 
-        @click="generateComposition" 
-        :disabled="!canGenerate"
-        class="generate-btn"
-      >
-        Generate Composition
-      </button>
+        <!-- Generate Button -->
+        <button 
+          @click="generateComposition" 
+          :disabled="!canGenerate"
+          class="generate-btn"
+        >
+          Generate Composition
+        </button>
+      </div>
+      <div v-else class="results-container">
+        <h2>Your Valorant Composition</h2>
+        <div class="composition-results">
+          <div v-for="assignment in composition" :key="assignment.player" class="player-assignment">
+            <span class="player-name">{{ assignment.player }}</span>
+            <div class="agent-assignment">
+              <img v-if="assignment.agent" :src="getAgentIcon(assignment.agent)" :alt="assignment.agent" class="result-agent-icon" />
+              <div class="role-icon" v-else :class="assignment.role.toLowerCase()">
+                {{ assignment.role.charAt(0) }}
+              </div>
+              <div class="agent-info">
+                <span class="role-badge" :class="assignment.role.toLowerCase()">
+                  {{ assignment.role }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="role-summary">
+          <h3>Role Distribution</h3>
+          <div class="role-counts">
+            <div v-for="(count, role) in roleCounts" :key="role" class="role-count">
+              <span class="role-name">{{ role }}:</span>
+              <span class="count">{{ count }}</span>
+            </div>
+          </div>
+        </div>
+
+        <button @click="resetGenerator" class="reset-btn">
+          Generate New Composition
+        </button>
+        
+        <button @click="clearRoleHistory" class="clear-history-btn" title="Clear role history to reset anti-repetition system">
+          Clear Role History
+        </button>
+      </div>
     </div>
-
-    <!-- Results Screen -->
-    <div v-else class="results-container">
-      <h2>Your Valorant Composition</h2>
-      <div class="composition-results">
-        <div v-for="assignment in composition" :key="assignment.player" class="player-assignment">
-          <span class="player-name">{{ assignment.player }}</span>
-          <div class="agent-assignment">
-            <img v-if="assignment.agent" :src="getAgentIcon(assignment.agent)" :alt="assignment.agent" class="result-agent-icon" />
-            <div class="role-icon" v-else :class="assignment.role.toLowerCase()">
-              {{ assignment.role.charAt(0) }}
-            </div>
-            <div class="agent-info">
-              <span class="role-badge" :class="assignment.role.toLowerCase()">
-                {{ assignment.role }}
-              </span>
-            </div>
-          </div>
-        </div>
+    <div class="teammates-panel">
+      <h3 style="margin-top: 0; margin-bottom: 0.75rem; font-size: 1.1rem; letter-spacing: 0.5px;">Recent/Frequent Teammates</h3>
+      <div v-if="recentTeammates.length === 0" class="empty-teammates" style="color: #888; text-align: center;">No teammates yet.</div>
+      <div v-else class="teammates-list" style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-start;">
+        <button
+          v-for="mate in recentTeammates"
+          :key="mate"
+          type="button"
+          class="teammate-btn"
+          @click="autofillTeammate(mate)"
+          style="
+            background: #23262f;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.15s;
+            box-shadow: 0 1px 3px #0001;
+            margin: 0;
+          "
+          @mouseover="event.target.style.background='#2e3240'"
+          @mouseleave="event.target.style.background='#23262f'"
+        >
+          {{ mate }}
+        </button>
       </div>
-      
-      <div class="role-summary">
-        <h3>Role Distribution</h3>
-        <div class="role-counts">
-          <div v-for="(count, role) in roleCounts" :key="role" class="role-count">
-            <span class="role-name">{{ role }}:</span>
-            <span class="count">{{ count }}</span>
-          </div>
-        </div>
-      </div>
-
-      <button @click="resetGenerator" class="reset-btn">
-        Generate New Composition
-      </button>
-      
-      <button @click="clearRoleHistory" class="clear-history-btn" title="Clear role history to reset anti-repetition system">
-        Clear Role History
-      </button>
     </div>
   </div>
 </template>
@@ -194,7 +222,17 @@ export default {
       },
       agentsByRole,
       // Track role history to reduce repetition
-      roleHistory: {} // { playerName: [role1, role2, ...] }
+      roleHistory: {}, // { playerName: [role1, role2, ...] }
+      recentTeammates: [] // List of recent/frequent teammates
+    }
+  },
+  mounted() {
+    // Load teammates from localStorage if available
+    const stored = localStorage.getItem('recentTeammates');
+    if (stored) {
+      try {
+        this.recentTeammates = JSON.parse(stored);
+      } catch {}
     }
   },
   computed: {
@@ -205,7 +243,52 @@ export default {
     }
   },
   methods: {
-    generateComposition() {
+    // Add or update teammate frequency, keep most recent/frequent at top
+    updateTeammatesList() {
+      // Gather all non-empty player names
+      const allNames = this.players.filter(name => name.trim() !== '');
+      // Add from current comp as well
+      if (this.composition && this.composition.length) {
+        this.composition.forEach(a => {
+          if (a.player && !allNames.includes(a.player)) allNames.push(a.player);
+        });
+      }
+      // Count frequency
+      const freq = {};
+      allNames.forEach(name => {
+        if (!freq[name]) freq[name] = 0;
+        freq[name]++;
+      });
+      // Add previous
+      this.recentTeammates.forEach(name => {
+        if (!freq[name]) freq[name] = 0;
+      });
+      // Sort by frequency, then recency (latest at top)
+      const sorted = Object.keys(freq)
+        .sort((a, b) => freq[b] - freq[a] || allNames.lastIndexOf(b) - allNames.lastIndexOf(a));
+      // Limit to 10
+      this.recentTeammates = sorted.slice(0, 10);
+      localStorage.setItem('recentTeammates', JSON.stringify(this.recentTeammates));
+    },
+
+    autofillTeammate(name) {
+      // Insert into first empty slot, or replace the last one if all are filled
+      let inserted = false;
+      for (let i = 0; i < this.players.length; i++) {
+        if (this.players[i].trim() === '') {
+          this.players[i] = name;
+          inserted = true;
+          console.log('Autofilled', name, 'into slot', i);
+          break;
+        }
+      }
+      if (!inserted) {
+        // If all slots are filled, replace the last one
+        this.players[this.players.length - 1] = name;
+        console.log('Autofilled', name, 'into last slot');
+      }
+    },
+  generateComposition() {
       // Determine which role to double
       let doubleRole = this.selectedRole;
       if (doubleRole === 'Random') {
@@ -249,12 +332,13 @@ export default {
           this.roleHistory[playerName] = [];
         }
         this.roleHistory[playerName].push(assignment.role);
-        
         // Keep only the last 5 roles to prevent infinite growth
         if (this.roleHistory[playerName].length > 5) {
           this.roleHistory[playerName] = this.roleHistory[playerName].slice(-5);
         }
       });
+      // Update teammates list
+      this.updateTeammatesList();
       
       // Calculate role counts for summary
       this.roleCounts = calculateRoleCounts(this.composition);
@@ -279,3 +363,59 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.app {
+  min-height: 100vh;
+  color: #fff;
+  font-family: 'Inter', Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+.center-content {
+  max-width: 600px;
+  width: 100%;
+  margin: 1rem auto 2rem auto;
+  border-radius: 16px;
+  padding: 0 2rem 2rem 2rem;
+  z-index: 1;
+  background: none;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.setup-container, .results-container {
+  width: 100%;
+  background: none;
+  box-shadow: none;
+  border-radius: 12px;
+}
+.teammates-panel {
+  position: fixed;
+  top: 3rem;
+  right: 3rem;
+  width: 260px;
+  min-width: 180px;
+  background: #181a20ee;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px #0002;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+@media (max-width: 1100px) {
+  .teammates-panel {
+    position: static;
+    margin: 2rem auto 0 auto;
+    width: 90%;
+    min-width: unset;
+    right: unset;
+    top: unset;
+  }
+}
+</style>
